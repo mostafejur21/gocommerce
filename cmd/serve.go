@@ -1,11 +1,17 @@
 package cmd
 
 import (
-	"fmt"
 	"go_ecommerce/config"
+	"go_ecommerce/rest"
+	"go_ecommerce/rest/middlewares"
 )
 
 func Serve() {
-	fmt.Println("FROM SERVE FUNCTION")
-	config.GetConfig()
+	cnf := config.GetConfig()
+
+	middlewares := middlewares.NewMiddlewares(cnf)
+
+	server := rest.NewServer(cnf)
+
+	server.Start()
 }

@@ -2,24 +2,32 @@ package db
 
 import (
 	"fmt"
+	"go_ecommerce/config"
 
-	_ "github.com/lib/pq"
 	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 )
 
-func GetConnectionString() string {
-	// user -> postgress
-	// password -> 12345678
-	// host -> localhost
-	// port -> 5432
-	// db name -> {{dbname}}
+func GetConnectionString(cnf *config.DBConfig) string {
+	connString := fmt.Sprintf(
+		"user=%s password=%s host=%s port=%d dbname=%s",
+		cnf.User,
+		cnf.Password,
+		cnf.Host,
+		cnf.Port,
+		cnf.Name,
+	)
 
-	return "user=postgres password=12345678 host=localhost port=5432 dbname=ecommerce"
+	if !cnf.EnableSSLMODE {
+		connString += " sslmode=disable"
+	}
+	return connString
 }
 
-func NewConnection() (*sqlx.DB, error) {
-	dbSource := GetConnectionString()
+func NewConnection(cnf *config.DBConfig) (*sqlx.DB, error) {
+	dbSource := GetConnectionString(cnf)
 	dbCon, err := sqlx.Connect("postgres", dbSource)
+
 	if err != nil {
 		fmt.Println(err)
 		return nil, err

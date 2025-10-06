@@ -3,26 +3,14 @@ package repo
 import (
 	"database/sql"
 	"fmt"
-
 	"github.com/jmoiron/sqlx"
+	"go_ecommerce/domain"
+	"go_ecommerce/product"
 )
 
-type Product struct {
-	ID          int     `json:"id" db:"id"`
-	Title       string  `json:"title" db:"title"`
-	Description string  `json:"description" db:"description"`
-	Price       float64 `json:"price" db:"price"`
-	ImageUrl    string  `json:"imageUrl db:"img_url"`
-}
-
 type ProductRepo interface {
-	Create(p Product) (*Product, error)
-	Get(productId int) (*Product, error)
-	List() ([]*Product, error)
-	Delete(productId int) error
-	Update(p Product) (*Product, error)
+	product.ProductRepo
 }
-
 type productRepo struct {
 	db *sqlx.DB
 }
@@ -33,7 +21,7 @@ func NewProductRepo(db *sqlx.DB) ProductRepo {
 	}
 }
 
-func (r *productRepo) Create(p Product) (*Product, error) {
+func (r *productRepo) Create(p domain.Product) (*domain.Product, error) {
 	query := `
 	INSERT INTO products (
 	title,
@@ -56,8 +44,8 @@ func (r *productRepo) Create(p Product) (*Product, error) {
 	return &p, nil
 }
 
-func (r *productRepo) Get(productId int) (*Product, error) {
-	var prd Product
+func (r *productRepo) Get(productId int) (*domain.Product, error) {
+	var prd domain.Product
 	query := `
 	SELECT
 		id,
@@ -78,12 +66,14 @@ func (r *productRepo) Get(productId int) (*Product, error) {
 	return &prd, nil
 }
 
-func (r *productRepo) List() ([]*Product, error) {
-	var prdList []*Product
+func (r *productRepo) List(page, limit int64) ([]*domain.Product, error) {
+	offset := ((page - 1) * limit) + 1
+	var prdList []*domain.Product
 	query := `
 	SELECT id, title, description, price, img_url FROM products
+	LIMIT $1 OFFSET $2
 `
-	err := r.db.Select(&prdList, query)
+	err := r.db.Select(&prdList, query, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +92,7 @@ DELETE FROM products
 	return nil
 }
 
-func (r *productRepo) Update(p Product) (*Product, error) {
+func (r *productRepo) Update(p domain.Product) (*domain.Product, error) {
 	query := `
 	UPDATE products
 	SET
@@ -118,4 +108,18 @@ func (r *productRepo) Update(p Product) (*Product, error) {
 		return nil, err
 	}
 	return &p, nil
+}
+
+func (r *productRepo) Count() (int64, error) {
+	query := `
+		SELECT
+			COUNT(*)
+		FROM products
+`
+	var count int
+	err := r.db.QueryRow(query).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return int64(count), nil
 }

@@ -3,6 +3,8 @@ package rest
 import (
 	"fmt"
 	"go_ecommerce/config"
+	"go_ecommerce/rest/handlers/product"
+	"go_ecommerce/rest/handlers/user"
 	"go_ecommerce/rest/middlewares"
 	"net/http"
 	"os"
@@ -10,23 +12,32 @@ import (
 )
 
 type Server struct {
-	cnf *config.Config
+	cnf            *config.Config
+	productHandler *product.Handler
+	userHandler    *user.Handler
 }
 
-func NewServer(cnf *config.Config) *Server {
-	return &Server{cnf: cnf}
+func NewServer(
+	cnf *config.Config,
+	productHandler *product.Handler,
+	userHandler *user.Handler,
+) *Server {
+	return &Server{cnf: cnf, productHandler: productHandler, userHandler: userHandler}
 }
 
 func (server *Server) Start() {
-	manager := middlewares.NewManager()
+	manager := middleware.NewManager()
 	manager.Use(
-		middlewares.Preflight,
-		middlewares.Cors,
-		middlewares.Logger,
+		middleware.Preflight,
+		middleware.Cors,
+		middleware.Logger,
 	)
 
 	mux := http.NewServeMux()
 	wrappedMux := manager.WrapMux(mux)
+
+	server.productHandler.RegisterRoutes(mux, manager)
+	server.userHandler.RegisterRoutes(mux, manager)
 
 	addr := ":" + strconv.Itoa(server.cnf.HttpPort)
 	fmt.Println("Starting server on port:", addr)
